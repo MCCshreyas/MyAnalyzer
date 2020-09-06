@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -38,25 +35,12 @@ namespace MyAnalyzer
                 var classDeclaration = (ClassDeclarationSyntax)context.Node;
                 if (classDeclaration.BaseList != null)
                 {
-                    var hasActionAuthorizeAttribute = false;
-
-                    var types = (GenericNameSyntax)classDeclaration.BaseList.Types[0].Type;
-                    var controllerName = types.Identifier.ValueText;
-
-                    if (controllerName == "BaseController")
+                    if (classDeclaration.IsBaseController())
                     {
-                        var list = classDeclaration.AttributeLists.ToList();
-                        foreach (var attributeName in list.SelectMany(l =>
-                            l.Attributes.Select(current => (IdentifierNameSyntax)current.Name)
-                                .Select(name => name.Identifier.ValueText)))
+                        if (!classDeclaration.HasClassAttribute("ActionAuthorize"))
                         {
-                            hasActionAuthorizeAttribute = attributeName == "ActionAuthorize";
+                          context.ReportDiagnostic(Diagnostic.Create(Rule, classDeclaration.Identifier.GetLocation()));
                         }
-                    }
-
-                    if (hasActionAuthorizeAttribute == false)
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(Rule, classDeclaration.Identifier.GetLocation()));
                     }
                 }
             }
